@@ -1,0 +1,67 @@
+<?php $__env->startSection('title', 'beehive kitchen terminal'); ?>
+<?php $__env->startPush('head'); ?>
+<meta http-equiv="refresh" content="5">
+<style>
+    .topbar,.footer{display:none!important}.wrap{width:100%!important;max-width:none!important;margin:0!important}.alert{margin:16px auto;width:min(1200px,92vw)}body{background:#f8fafc!important}.staff-shell{min-height:100vh;background:#f8fafc;color:#172337}.kitchen-header{height:68px;background:#172337;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 12vw;box-shadow:0 4px 18px rgba(15,23,42,.22)}.kitchen-brand{display:flex;align-items:center;gap:14px;font-size:23px;font-weight:950;font-style:italic}.kitchen-brand span:first-child{font-size:30px;color:#f5b400}.active-count{font-weight:950}.active-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#18c964;margin-right:8px}.kitchen-main{width:min(1460px,84vw);margin:24px auto 0;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px}.panel-title{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:950;color:#334155;margin:0 0 28px}.empty-dashed{height:220px;border:2px dashed #94a3b8;border-radius:28px;display:grid;place-items:center;color:#94a3b8;font-size:18px;background:#fff}.order-card{background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:22px;margin-bottom:18px;box-shadow:0 8px 22px rgba(15,23,42,.07)}.order-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:16px}.order-num{font-size:24px;font-weight:950;margin:0}.order-meta{color:#64748b;margin:5px 0 0}.items-list{display:grid;gap:8px;margin:12px 0}.item-pill{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;font-weight:800}.staff-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.history-panel{min-height:500px}.history-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;gap:12px}.history-card strong{color:#172337}.history-card span{color:#64748b;font-size:13px}.logout-btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:10px 16px;font-weight:900;cursor:pointer}.badge{font-size:12px}.badge.pending{background:#fff7cc;color:#8a5b00}.badge.preparing{background:#dbeafe;color:#1d4ed8}.badge.ready{background:#dcfce7;color:#166534;animation:pulse 1.2s infinite}.badge.completed{background:#e5e7eb;color:#374151}.badge.cancelled{background:#fee2e2;color:#991b1b}
+    @media(max-width:1050px){.kitchen-header{padding:0 22px}.kitchen-main{width:92vw;grid-template-columns:1fr}.history-panel{min-height:auto}}
+</style>
+<?php $__env->stopPush(); ?>
+<?php $__env->startSection('content'); ?>
+<div class="staff-shell">
+    <header class="kitchen-header">
+        <div class="kitchen-brand"><span>♨</span><span>BeeHive Kitchen Terminal</span></div>
+        <div style="display:flex;align-items:center;gap:18px">
+            <div class="active-count"><span class="active-dot"></span><?php echo e($orders->count()); ?> Active Orders</div>
+            <form method="POST" action="<?php echo e(route('logout', 'staff')); ?>"><?php echo csrf_field(); ?><button class="logout-btn">Logout</button></form>
+        </div>
+    </header>
+
+    <main class="kitchen-main">
+        <section>
+            <h2 class="panel-title">◷ Incoming & Preparation</h2>
+            <?php $__empty_1 = true; $__currentLoopData = $orders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <article class="order-card">
+                    <div class="order-top">
+                        <div>
+                            <h3 class="order-num"><?php echo e($order->order_number); ?></h3>
+                            <p class="order-meta"><?php echo e($order->created_at->format('h:i A')); ?> • <?php echo e(str_replace('_', ' ', strtoupper($order->order_type))); ?> • <?php echo e($order->table?->name ?? 'No table'); ?></p>
+                        </div>
+                        <span class="badge <?php echo e($order->status); ?>"><?php echo e($order->status); ?></span>
+                    </div>
+                    <div class="items-list">
+                        <?php $__currentLoopData = $order->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <div class="item-pill"><strong><?php echo e($item->quantity); ?>x</strong> <?php echo e($item->item_name); ?></div>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </div>
+                    <?php if($order->notes): ?><p><strong>Notes:</strong> <?php echo e($order->notes); ?></p><?php endif; ?>
+                    <p><strong>Total:</strong> ₱<?php echo e(number_format($order->total, 2)); ?> • <strong>Payment:</strong> <?php echo e(ucfirst($order->payment_method)); ?> / <?php echo e(ucfirst($order->payment_status)); ?></p>
+                    <div class="staff-actions">
+                        <?php if($order->status === 'pending'): ?>
+                            <form method="POST" action="<?php echo e(route('staff.orders.status', $order)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><input type="hidden" name="status" value="preparing"><button class="btn blue">Start Preparation</button></form>
+                        <?php endif; ?>
+                        <?php if(in_array($order->status, ['pending','preparing'])): ?>
+                            <form method="POST" action="<?php echo e(route('staff.orders.status', $order)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><input type="hidden" name="status" value="ready"><button class="btn green">Set as Ready</button></form>
+                        <?php endif; ?>
+                        <?php if(in_array($order->status, ['pending','preparing','ready'])): ?>
+                            <form method="POST" action="<?php echo e(route('staff.orders.status', $order)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><input type="hidden" name="status" value="completed"><button class="btn primary">Completed</button></form>
+                            <form method="POST" action="<?php echo e(route('staff.orders.status', $order)); ?>" onsubmit="return confirm('Cancel this order?')"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><input type="hidden" name="status" value="cancelled"><button class="btn red">Cancel</button></form>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <div class="empty-dashed">No active orders.</div>
+            <?php endif; ?>
+        </section>
+        <aside class="history-panel">
+            <h2 class="panel-title">☑ Order History</h2>
+            <?php $__empty_1 = true; $__currentLoopData = $completedToday; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <div class="history-card"><div><strong><?php echo e($order->order_number); ?></strong><br><span><?php echo e($order->updated_at->format('h:i A')); ?></span></div><strong>₱<?php echo e(number_format($order->total, 2)); ?></strong></div>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <div class="empty-dashed" style="height:220px">No completed orders yet.</div>
+            <?php endif; ?>
+        </aside>
+    </main>
+</div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layout', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\Jamaica Rose Fabon\Downloads\Jamaica Fabon Sys\beehive-laravel-only\resources\views/staff/orders.blade.php ENDPATH**/ ?>
